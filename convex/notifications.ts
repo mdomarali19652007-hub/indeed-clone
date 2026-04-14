@@ -3,9 +3,9 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { getOrCreateViewerUser, getViewerUser } from "./lib/auth";
 
 const notificationTypeValidator = v.union(
-  v.literal("application_status"),
-  v.literal("application_received"),
-  v.literal("job_closed"),
+  v.literal("proposal_received"),
+  v.literal("proposal_status"),
+  v.literal("request_closed"),
   v.literal("system"),
 );
 
@@ -35,9 +35,7 @@ export const listMyNotifications = query({
   },
   handler: async (ctx, args) => {
     const user = await getViewerUser(ctx);
-    if (!user) {
-      return [];
-    }
+    if (!user) return [];
 
     const limit = Math.max(1, Math.min(args.limit ?? 50, 200));
     if (args.unreadOnly) {
@@ -62,9 +60,7 @@ export const getUnreadNotificationCount = query({
   args: {},
   handler: async (ctx) => {
     const user = await getViewerUser(ctx);
-    if (!user) {
-      return 0;
-    }
+    if (!user) return 0;
 
     const unread = await ctx.db
       .query("notifications")
@@ -88,10 +84,9 @@ export const markNotificationRead = mutation({
       throw new ConvexError("Notification not found.");
     }
 
-    const now = Date.now();
     await ctx.db.patch(args.notificationId, {
       isRead: true,
-      readAt: now,
+      readAt: Date.now(),
     });
 
     return await ctx.db.get(args.notificationId);
@@ -112,10 +107,7 @@ export const markAllNotificationsRead = mutation({
     const now = Date.now();
     await Promise.all(
       unread.map((notification) =>
-        ctx.db.patch(notification._id, {
-          isRead: true,
-          readAt: now,
-        }),
+        ctx.db.patch(notification._id, { isRead: true, readAt: now }),
       ),
     );
 

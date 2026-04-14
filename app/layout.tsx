@@ -18,9 +18,9 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Jobly — Find jobs you actually want",
+  title: "DevHire - Post your problem. Get a developer.",
   description:
-    "A friendly job marketplace for candidates and companies. Search, apply, and hire with confidence.",
+    "A simple platform to find developers for your project. Post a request, get proposals, and hire the right dev.",
   icons: {
     icon: "/convex.svg",
   },
@@ -39,9 +39,8 @@ export default function RootLayout({
         <ClerkProvider
           dynamic
           appearance={{
-            cssLayerName: "clerk",
             variables: {
-              colorPrimary: "var(--terracotta)",
+              colorPrimary: "var(--jade)",
               colorBackground: "var(--background)",
               colorForeground: "var(--foreground)",
               colorPrimaryForeground: "var(--primary-foreground)",
