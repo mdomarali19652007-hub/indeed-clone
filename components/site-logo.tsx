@@ -8,7 +8,7 @@ export function SiteLogo() {
         <div className="size-3 rounded-full bg-jade/60" />
       </div>
       <span className="font-(family-name:--font-bricolage) text-xl font-bold tracking-tight">
-        Jobly
+        DevHire
       </span>
     </Link>
   );

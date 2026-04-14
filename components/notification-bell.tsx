@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import {
   Bell,
-  BriefcaseBusiness,
   CheckCheck,
   FileText,
   Info,
+  Send,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -35,14 +35,16 @@ function formatRelativeTime(timestamp: number) {
 }
 
 type NotificationType =
-  | "application_status"
-  | "application_received"
-  | "job_closed"
+  | "proposal_received"
+  | "proposal_status"
+  | "request_closed"
   | "system";
 
 function getNotificationIcon(type: NotificationType, metadata?: Record<string, unknown>) {
   switch (type) {
-    case "application_status": {
+    case "proposal_received":
+      return <Send className="size-4 text-blue-500" />;
+    case "proposal_status": {
       const status = metadata?.status as string | undefined;
       if (status === "accepted")
         return <CheckCheck className="size-4 text-emerald-500" />;
@@ -50,10 +52,8 @@ function getNotificationIcon(type: NotificationType, metadata?: Record<string, u
         return <XCircle className="size-4 text-red-400" />;
       return <FileText className="size-4 text-amber-500" />;
     }
-    case "application_received":
-      return <FileText className="size-4 text-blue-500" />;
-    case "job_closed":
-      return <BriefcaseBusiness className="size-4 text-muted-foreground" />;
+    case "request_closed":
+      return <XCircle className="size-4 text-muted-foreground" />;
     case "system":
     default:
       return <Info className="size-4 text-muted-foreground" />;
@@ -85,127 +85,103 @@ export function NotificationBell() {
       if (!isRead) {
         await markRead({ notificationId });
       }
+      if (linkUrl) {
+        setOpen(false);
+        router.push(linkUrl);
+      }
     } catch (error) {
-      toast.error(getErrorMessage(error, "Could not mark notification as read."));
-    }
-    if (linkUrl) {
-      setOpen(false);
-      router.push(linkUrl);
+      toast.error(getErrorMessage(error));
     }
   };
 
-  const displayCount = unreadCount > 9 ? "9+" : unreadCount;
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllRead();
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
-  // Defer Popover until after mount so Radix useId() matches and avoids hydration mismatch.
-  if (!mounted) {
-    return (
-      <button
-        type="button"
-        className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        aria-label="Notifications"
-      >
-        <Bell className="size-4" />
-      </button>
-    );
-  }
+  if (!mounted) return null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="relative flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-jade text-[9px] font-bold text-white">
-              {displayCount}
+            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-jade text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-          <h3 className="text-sm font-semibold">Notifications</h3>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="text-sm font-semibold">Notifications</p>
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() =>
-                void markAllRead().catch((error) =>
-                  toast.error(getErrorMessage(error, "Could not mark all as read."))
-                )
-              }
-              className="text-xs text-muted-foreground"
+            <button
+              onClick={handleMarkAllRead}
+              className="text-xs font-medium text-jade hover:underline"
             >
               Mark all read
-            </Button>
+            </button>
           )}
         </div>
-
         <div className="max-h-80 overflow-y-auto">
           {!notifications || notifications.length === 0 ? (
-            <div className="flex flex-col items-center gap-1.5 py-8 text-center">
-              <Bell className="size-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No notifications yet</p>
+            <div className="flex flex-col items-center gap-1 py-8 text-center">
+              <Bell className="size-5 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
-            notifications.map((notification) => (
+            notifications.map((n) => (
               <button
-                key={notification._id}
-                onClick={() =>
-                  handleNotificationClick(
-                    notification._id,
-                    notification.linkUrl,
-                    notification.isRead,
-                  )
-                }
+                key={n._id}
+                onClick={() => handleNotificationClick(n._id, n.linkUrl, n.isRead)}
                 className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50 ${
-                  !notification.isRead ? "bg-jade/5" : ""
+                  !n.isRead ? "bg-jade/5" : ""
                 }`}
               >
                 <div className="mt-0.5 shrink-0">
                   {getNotificationIcon(
-                    notification.type as NotificationType,
-                    notification.metadata as Record<string, unknown> | undefined,
+                    n.type as NotificationType,
+                    n.metadata as Record<string, unknown> | undefined,
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p
-                      className={`text-sm leading-snug ${
-                        !notification.isRead ? "font-semibold" : "font-medium"
-                      }`}
-                    >
-                      {notification.title}
-                    </p>
-                    {!notification.isRead && (
-                      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-jade" />
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground line-clamp-2">
-                    {notification.message}
+                  <p className="text-sm font-medium leading-tight">{n.title}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                    {n.message}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/60">
-                    {formatRelativeTime(notification.createdAt)}
+                  <p className="mt-1 text-[10px] text-muted-foreground/60">
+                    {formatRelativeTime(n.createdAt)}
                   </p>
                 </div>
+                {!n.isRead && (
+                  <div className="mt-1.5 size-2 shrink-0 rounded-full bg-jade" />
+                )}
               </button>
             ))
           )}
         </div>
-
         {notifications && notifications.length > 0 && (
-          <div className="border-t border-border/60">
-            <button
+          <div className="border-t border-border p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs"
               onClick={() => {
                 setOpen(false);
                 router.push("/notifications");
               }}
-              className="flex w-full items-center justify-center py-2.5 text-xs font-medium text-jade transition-colors hover:bg-secondary/50"
             >
               View all notifications
-            </button>
+            </Button>
           </div>
         )}
       </PopoverContent>
