@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
   CheckCheck,
@@ -10,7 +11,7 @@ import {
   Send,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { getErrorMessage } from "@/lib/convex-error";
@@ -40,7 +41,10 @@ type NotificationType =
   | "request_closed"
   | "system";
 
-function getNotificationIcon(type: NotificationType, metadata?: Record<string, unknown>) {
+function getNotificationIcon(
+  type: NotificationType,
+  metadata?: Record<string, unknown>,
+) {
   switch (type) {
     case "proposal_received":
       return <Send className="size-4 text-blue-500" />;
@@ -64,17 +68,30 @@ export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [shouldShake, setShouldShake] = useState(false);
+  const prevCountRef = useRef(0);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const unreadCount = useQuery(api.notifications.getUnreadNotificationCount) ?? 0;
+  const unreadCount =
+    useQuery(api.notifications.getUnreadNotificationCount) ?? 0;
   const notifications = useQuery(api.notifications.listMyNotifications, {
     limit: 10,
   });
   const markRead = useMutation(api.notifications.markNotificationRead);
   const markAllRead = useMutation(api.notifications.markAllNotificationsRead);
+
+  // Shake bell when unread count increases
+  useEffect(() => {
+    if (unreadCount > prevCountRef.current && prevCountRef.current > 0) {
+      setShouldShake(true);
+      const timeout = setTimeout(() => setShouldShake(false), 600);
+      return () => clearTimeout(timeout);
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   const handleNotificationClick = async (
     notificationId: Id<"notifications">,
@@ -108,17 +125,31 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
+        <motion.button
           className="relative flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+          animate={
+            shouldShake
+              ? { rotate: [0, -15, 15, -10, 10, -5, 5, 0] }
+              : { rotate: 0 }
+          }
+          transition={{ duration: 0.5 }}
         >
           <Bell className="size-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-jade text-[10px] font-bold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+          <AnimatePresence>
+            {unreadCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-jade text-[10px] font-bold text-white"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -136,13 +167,17 @@ export function NotificationBell() {
           {!notifications || notifications.length === 0 ? (
             <div className="flex flex-col items-center gap-1 py-8 text-center">
               <Bell className="size-5 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">No notifications yet</p>
+              <p className="text-xs text-muted-foreground">
+                No notifications yet
+              </p>
             </div>
           ) : (
             notifications.map((n) => (
               <button
                 key={n._id}
-                onClick={() => handleNotificationClick(n._id, n.linkUrl, n.isRead)}
+                onClick={() =>
+                  handleNotificationClick(n._id, n.linkUrl, n.isRead)
+                }
                 className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50 ${
                   !n.isRead ? "bg-jade/5" : ""
                 }`}
@@ -163,7 +198,11 @@ export function NotificationBell() {
                   </p>
                 </div>
                 {!n.isRead && (
-                  <div className="mt-1.5 size-2 shrink-0 rounded-full bg-jade" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="mt-1.5 size-2 shrink-0 rounded-full bg-jade"
+                  />
                 )}
               </button>
             ))

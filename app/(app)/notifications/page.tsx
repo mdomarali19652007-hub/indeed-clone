@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
   CheckCheck,
@@ -17,6 +17,10 @@ import { getErrorMessage } from "@/lib/convex-error";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
+import { fadeInUp, staggerContainer } from "@/lib/animations";
 
 type NotificationType =
   | "proposal_received"
@@ -96,82 +100,97 @@ export default function NotificationsPage() {
   };
 
   return (
-    <section className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-(family-name:--font-bricolage) text-2xl font-bold tracking-tight">
-            Notifications
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Stay updated on your requests and proposals.
-          </p>
-        </div>
-        {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            onClick={handleMarkAll}
-          >
-            Mark all read
-          </Button>
-        )}
-      </div>
+    <section className="space-y-6">
+      <PageHeader
+        title="Notifications"
+        description="Stay updated on your requests and proposals."
+        action={
+          unreadCount > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={handleMarkAll}
+            >
+              Mark all read
+            </Button>
+          ) : undefined
+        }
+      />
 
       {notifications === undefined ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="space-y-2 p-5">
-                <div className="h-4 w-2/3 rounded bg-secondary" />
-                <div className="h-3 w-full rounded bg-secondary" />
+            <Card key={i}>
+              <CardContent className="flex items-start gap-4 p-4">
+                <Skeleton className="size-5 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-2 w-16" />
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <Bell className="size-8 text-muted-foreground/50" />
-            <p className="font-medium">No notifications</p>
-            <p className="text-sm text-muted-foreground">
-              You will be notified when someone sends a proposal or responds to yours.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Bell}
+          title="No notifications"
+          description="You will be notified when someone sends a proposal or responds to yours."
+        />
       ) : (
-        <div className="space-y-2">
-          {notifications.map((n) => (
-            <Card
-              key={n._id}
-              className={`cursor-pointer transition-colors hover:border-jade/30 ${
-                !n.isRead ? "border-jade/20 bg-jade/5" : ""
-              }`}
-              onClick={() => handleClick(n._id, n.linkUrl, n.isRead)}
-            >
-              <CardContent className="flex items-start gap-4 p-4">
-                <div className="mt-0.5 shrink-0">
-                  {getNotificationIcon(
-                    n.type as NotificationType,
-                    n.metadata as Record<string, unknown> | undefined,
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-tight">{n.title}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {n.message}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground/60">
-                    {formatRelativeTime(n.createdAt)}
-                  </p>
-                </div>
-                {!n.isRead && (
-                  <div className="mt-2 size-2.5 shrink-0 rounded-full bg-jade" />
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <motion.div
+          variants={staggerContainer(0.05)}
+          initial="hidden"
+          animate="show"
+          className="space-y-2"
+        >
+          <AnimatePresence>
+            {notifications.map((n) => (
+              <motion.div
+                key={n._id}
+                variants={fadeInUp}
+                layout
+              >
+                <Card
+                  className={`cursor-pointer transition-colors hover:border-jade/30 ${
+                    !n.isRead ? "border-jade/20 bg-jade/5" : ""
+                  }`}
+                  onClick={() => handleClick(n._id, n.linkUrl, n.isRead)}
+                >
+                  <CardContent className="flex items-start gap-4 p-4">
+                    <div className="mt-0.5 shrink-0">
+                      {getNotificationIcon(
+                        n.type as NotificationType,
+                        n.metadata as Record<string, unknown> | undefined,
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-tight">
+                        {n.title}
+                      </p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {n.message}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground/60">
+                        {formatRelativeTime(n.createdAt)}
+                      </p>
+                    </div>
+                    {!n.isRead && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="mt-2 size-2.5 shrink-0 rounded-full bg-jade"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
     </section>
   );
