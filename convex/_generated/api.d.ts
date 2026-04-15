@@ -16,7 +16,9 @@ import type * as payments from "../payments.js";
 import type * as profiles from "../profiles.js";
 import type * as proposals from "../proposals.js";
 import type * as requests from "../requests.js";
+import type * as stats from "../stats.js";
 import type * as sync from "../sync.js";
+import type * as testimonials from "../testimonials.js";
 
 import type {
   ApiFromModules,
@@ -33,7 +35,9 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   proposals: typeof proposals;
   requests: typeof requests;
+  stats: typeof stats;
   sync: typeof sync;
+  testimonials: typeof testimonials;
 }>;
 
 /**
