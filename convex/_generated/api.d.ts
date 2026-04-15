@@ -8,16 +8,14 @@
  * @module
  */
 
-import type * as applications from "../applications.js";
-import type * as companies from "../companies.js";
 import type * as favorites from "../favorites.js";
 import type * as http from "../http.js";
-import type * as jobs from "../jobs.js";
 import type * as lib_auth from "../lib/auth.js";
-import type * as lib_companies from "../lib/companies.js";
 import type * as notifications from "../notifications.js";
+import type * as payments from "../payments.js";
 import type * as profiles from "../profiles.js";
-import type * as seed from "../seed.js";
+import type * as proposals from "../proposals.js";
+import type * as requests from "../requests.js";
 import type * as sync from "../sync.js";
 
 import type {
@@ -27,16 +25,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  applications: typeof applications;
-  companies: typeof companies;
   favorites: typeof favorites;
   http: typeof http;
-  jobs: typeof jobs;
   "lib/auth": typeof lib_auth;
-  "lib/companies": typeof lib_companies;
   notifications: typeof notifications;
+  payments: typeof payments;
   profiles: typeof profiles;
-  seed: typeof seed;
+  proposals: typeof proposals;
+  requests: typeof requests;
   sync: typeof sync;
 }>;
 

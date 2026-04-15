@@ -44,7 +44,7 @@ import {
   slideInFromRight,
 } from "@/lib/animations";
 
-const ROTATING_WORDS = ["developer", "expert", "freelancer"];
+const ROTATING_WORDS = ["help", "solutions", "support"];
 
 const HOW_IT_WORKS_CLIENT = [
   {
@@ -338,9 +338,9 @@ export default function Home() {
             transition={{ delay: 0.2, duration: 0.5 }}
             className="font-(family-name:--font-bricolage) mx-auto mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight md:text-6xl"
           >
-            Post your problem.{" "}
+            Post your problem{" "}
             <span className="whitespace-nowrap">
-              Get a <RotatingWord />.
+              And get <RotatingWord />
             </span>
           </motion.h1>
 
@@ -607,21 +607,19 @@ export default function Home() {
             <div className="inline-flex rounded-full border border-border bg-card p-1">
               <button
                 onClick={() => setHowItWorksView("client")}
-                className={`rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${
-                  howItWorksView === "client"
-                    ? "bg-jade text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${howItWorksView === "client"
+                  ? "bg-jade text-white"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Client View
               </button>
               <button
                 onClick={() => setHowItWorksView("dev")}
-                className={`rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${
-                  howItWorksView === "dev"
-                    ? "bg-jade text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`rounded-full px-5 py-1.5 text-sm font-medium transition-colors ${howItWorksView === "dev"
+                  ? "bg-jade text-white"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Developer View
               </button>
