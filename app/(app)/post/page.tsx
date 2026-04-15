@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { getErrorMessage } from "@/lib/convex-error";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Send } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SkillTagInput } from "@/components/skill-tag-input";
+import { PageHeader } from "@/components/page-header";
+import { fadeInUp, staggerContainer } from "@/lib/animations";
+import { Loader2, PlusCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PostRequestPage() {
@@ -23,8 +35,18 @@ export default function PostRequestPage() {
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [timeline, setTimeline] = useState<string>("flexible");
-  const [skillsInput, setSkillsInput] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const progress = useMemo(() => {
+    let filled = 0;
+    const total = 4;
+    if (title.trim()) filled++;
+    if (description.trim()) filled++;
+    if (category) filled++;
+    if (timeline) filled++;
+    return Math.round((filled / total) * 100);
+  }, [title, description, category, timeline]);
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -38,20 +60,25 @@ export default function PostRequestPage() {
 
     setSubmitting(true);
     try {
-      const skills = skillsInput
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-
-      const requestId = await createRequest({
+      await createRequest({
         title: title.trim(),
         description: description.trim(),
-        category: category as "bug_fix" | "new_project" | "feature" | "consultation" | "hiring" | "other",
+        category: category as
+          | "bug_fix"
+          | "new_project"
+          | "feature"
+          | "consultation"
+          | "hiring"
+          | "other",
         budgetType: budgetType as "fixed" | "hourly" | "negotiable",
         budgetMin: budgetMin ? Number(budgetMin) : undefined,
         budgetMax: budgetMax ? Number(budgetMax) : undefined,
         budgetCurrency: "BDT",
-        timeline: timeline as "urgent" | "within_a_week" | "within_a_month" | "flexible",
+        timeline: timeline as
+          | "urgent"
+          | "within_a_week"
+          | "within_a_month"
+          | "flexible",
         skillsNeeded: skills.length > 0 ? skills : undefined,
       });
 
@@ -65,139 +92,189 @@ export default function PostRequestPage() {
   };
 
   return (
-    <section className="animate-fade-in mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="font-(family-name:--font-bricolage) text-2xl font-bold tracking-tight">
-          Post a Request
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tell developers what you need. The more details, the better proposals you will get.
-        </p>
-      </div>
+    <motion.section
+      variants={staggerContainer(0.1)}
+      initial="hidden"
+      animate="show"
+      className="mx-auto max-w-2xl space-y-6"
+    >
+      <PageHeader
+        title="Post a Request"
+        description="Tell developers what you need. The more details, the better proposals you will get."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-(family-name:--font-bricolage) text-lg tracking-tight">
-            <PlusCircle className="size-4 text-jade" />
-            Request Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              Title <span className="text-red-400">*</span>
-            </label>
-            <Input
-              placeholder="e.g. Fix login bug in React app"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={120}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              Description <span className="text-red-400">*</span>
-            </label>
-            <Textarea
-              placeholder="Describe the problem or what you need built. Include any relevant details like tech stack, deadlines, or requirements."
-              rows={6}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Category</label>
-            <select
-              className="h-9 w-full rounded-lg border border-border bg-transparent px-3 text-sm"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="bug_fix">Bug Fix</option>
-              <option value="new_project">New Project</option>
-              <option value="feature">New Feature</option>
-              <option value="consultation">Consultation</option>
-              <option value="hiring">Hiring</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          {/* Budget */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Budget</label>
-            <select
-              className="mb-2 h-9 w-full rounded-lg border border-border bg-transparent px-3 text-sm"
-              value={budgetType}
-              onChange={(e) => setBudgetType(e.target.value)}
-            >
-              <option value="negotiable">Negotiable</option>
-              <option value="fixed">Fixed price</option>
-              <option value="hourly">Hourly rate</option>
-            </select>
-            {budgetType !== "negotiable" && (
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  placeholder="Min (BDT)"
-                  value={budgetMin}
-                  onChange={(e) => setBudgetMin(e.target.value)}
-                />
-                <Input
-                  type="number"
-                  placeholder="Max (BDT)"
-                  value={budgetMax}
-                  onChange={(e) => setBudgetMax(e.target.value)}
-                />
+      <motion.div variants={fadeInUp}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-(family-name:--font-bricolage) text-lg tracking-tight">
+              <PlusCircle className="size-4 text-jade" />
+              Request Details
+            </CardTitle>
+            <div className="mt-2">
+              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Form completion</span>
+                <span>{progress}%</span>
               </div>
-            )}
-          </div>
+              <Progress value={progress} className="h-1.5" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Title */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Title <span className="text-red-400">*</span>
+              </label>
+              <Input
+                placeholder="e.g. Fix login bug in React app"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+              />
+            </div>
 
-          {/* Timeline */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Timeline</label>
-            <select
-              className="h-9 w-full rounded-lg border border-border bg-transparent px-3 text-sm"
-              value={timeline}
-              onChange={(e) => setTimeline(e.target.value)}
-            >
-              <option value="urgent">Urgent</option>
-              <option value="within_a_week">Within a week</option>
-              <option value="within_a_month">Within a month</option>
-              <option value="flexible">Flexible</option>
-            </select>
-          </div>
+            {/* Description */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Description <span className="text-red-400">*</span>
+              </label>
+              <Textarea
+                placeholder="Describe the problem or what you need built. Include any relevant details like tech stack, deadlines, or requirements."
+                rows={6}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
 
-          {/* Skills */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              Skills needed (optional)
-            </label>
-            <Input
-              placeholder="e.g. React, Node.js, Python (comma separated)"
-              value={skillsInput}
-              onChange={(e) => setSkillsInput(e.target.value)}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Separate skills with commas.
-            </p>
-          </div>
+            {/* Category */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Category
+              </label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug_fix">Bug Fix</SelectItem>
+                  <SelectItem value="new_project">New Project</SelectItem>
+                  <SelectItem value="feature">New Feature</SelectItem>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="hiring">Hiring</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Submit */}
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            size="lg"
-            className="w-full rounded-full bg-jade text-base font-semibold text-white hover:bg-jade/90"
-          >
-            <Send className="mr-2 size-4" />
-            {submitting ? "Posting..." : "Post Request"}
-          </Button>
-        </CardContent>
-      </Card>
-    </section>
+            {/* Budget */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Budget
+              </label>
+              <Select value={budgetType} onValueChange={setBudgetType}>
+                <SelectTrigger className="mb-2">
+                  <SelectValue placeholder="Budget type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="negotiable">Negotiable</SelectItem>
+                  <SelectItem value="fixed">Fixed price</SelectItem>
+                  <SelectItem value="hourly">Hourly rate</SelectItem>
+                </SelectContent>
+              </Select>
+              <AnimatePresence>
+                {budgetType !== "negotiable" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-2 gap-3 overflow-hidden"
+                  >
+                    <Input
+                      type="number"
+                      placeholder="Min (BDT)"
+                      value={budgetMin}
+                      onChange={(e) => setBudgetMin(e.target.value)}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max (BDT)"
+                      value={budgetMax}
+                      onChange={(e) => setBudgetMax(e.target.value)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Timeline */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Timeline
+              </label>
+              <Select value={timeline} onValueChange={setTimeline}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="within_a_week">Within a week</SelectItem>
+                  <SelectItem value="within_a_month">
+                    Within a month
+                  </SelectItem>
+                  <SelectItem value="flexible">Flexible</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">
+                Skills needed (optional)
+              </label>
+              <SkillTagInput
+                value={skills}
+                onChange={setSkills}
+                placeholder="e.g. React, Node.js, Python"
+              />
+            </div>
+
+            {/* Submit */}
+            <motion.div whileHover={{ scale: 1.01 }}>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                size="lg"
+                className="w-full rounded-full bg-jade text-base font-semibold text-white hover:bg-jade/90"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {submitting ? (
+                    <motion.span
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center"
+                    >
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Posting...
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center"
+                    >
+                      <Send className="mr-2 size-4" />
+                      Post Request
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.section>
   );
 }

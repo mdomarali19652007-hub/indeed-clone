@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { motion } from "framer-motion";
 import { Bell, Heart, PlusCircle, Search, Send, FileText } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
 import { SiteLogo } from "@/components/site-logo";
@@ -45,14 +46,29 @@ export default function AppLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-jade text-white"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  }`}
+                  className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors"
                 >
-                  <Icon className="size-3.5" />
-                  {item.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="desktop-nav-indicator"
+                      className="absolute inset-0 rounded-full bg-jade"
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <span
+                    className={`relative z-10 flex items-center gap-1.5 ${
+                      isActive
+                        ? "text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
@@ -80,14 +96,29 @@ export default function AppLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors ${
-                  isActive
-                    ? "text-jade"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors"
               >
-                <Icon className="size-4" />
-                {item.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-nav-indicator"
+                    className="absolute inset-0 rounded-lg bg-jade/10"
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 30,
+                    }}
+                  />
+                )}
+                <span
+                  className={`relative z-10 flex flex-col items-center gap-0.5 ${
+                    isActive
+                      ? "text-jade"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {item.label}
+                </span>
               </Link>
             );
           })}
