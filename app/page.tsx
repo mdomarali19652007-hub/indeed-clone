@@ -6,21 +6,26 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
+  Briefcase,
+  Bug,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
   Code2,
+  LayoutList,
   Menu,
-  MessageSquareQuote,
-  PenLine,
+  MessageCircle,
+  Rocket,
   Search,
   Send,
-  Star,
+  Sparkles,
   UserRound,
   Users,
-  X,
   Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { SiteLogo } from "@/components/site-logo";
 import { StatCounter } from "@/components/stat-counter";
@@ -43,6 +48,9 @@ import {
   slideInFromLeft,
   slideInFromRight,
 } from "@/lib/animations";
+import { AnimatedTooltip } from "@/components/aceternity/animated-tooltip";
+import { InfiniteMovingCards } from "@/components/aceternity/infinite-moving-cards";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ROTATING_WORDS = ["help", "solutions", "support"];
 
@@ -96,16 +104,16 @@ const HOW_IT_WORKS_DEV = [
   },
 ];
 
-const CATEGORIES = [
-  { label: "Bug Fix", value: "bug_fix", emoji: "🐛" },
-  { label: "New Project", value: "new_project", emoji: "🚀" },
-  { label: "New Feature", value: "feature", emoji: "✨" },
-  { label: "Consultation", value: "consultation", emoji: "💬" },
-  { label: "Hiring", value: "hiring", emoji: "👩\u200d💻" },
-  { label: "Other", value: "other", emoji: "📋" },
+const CATEGORIES: { label: string; value: string; icon: LucideIcon }[] = [
+  { label: "Bug Fix", value: "bug_fix", icon: Bug },
+  { label: "New Project", value: "new_project", icon: Rocket },
+  { label: "New Feature", value: "feature", icon: Sparkles },
+  { label: "Consultation", value: "consultation", icon: MessageCircle },
+  { label: "Hiring", value: "hiring", icon: Briefcase },
+  { label: "Other", value: "other", icon: LayoutList },
 ];
 
-const TESTIMONIALS = [
+const FALLBACK_TESTIMONIALS = [
   {
     name: "Sarah K.",
     role: "Startup Founder",
@@ -191,6 +199,28 @@ export default function Home() {
   );
   const steps =
     howItWorksView === "client" ? HOW_IT_WORKS_CLIENT : HOW_IT_WORKS_DEV;
+
+  // Live platform data
+  const platformStats = useQuery(api.stats.getPlatformStats);
+  const recentAvatars = useQuery(api.stats.getRecentUserAvatars);
+  const dbTestimonials = useQuery(api.testimonials.listApprovedTestimonials);
+
+  const testimonials =
+    dbTestimonials && dbTestimonials.length > 0
+      ? dbTestimonials.map((t) => ({
+          name: t.name,
+          role: t.role,
+          quote: t.quote,
+          rating: t.rating,
+        }))
+      : FALLBACK_TESTIMONIALS;
+
+  const avatarTooltipItems = (recentAvatars ?? []).map((u) => ({
+    id: u.id,
+    name: u.firstName ?? "User",
+    image: u.imageUrl,
+    fallback: u.firstName?.[0]?.toUpperCase() ?? "?",
+  }));
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -384,15 +414,36 @@ export default function Home() {
             </Button>
           </motion.div>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground"
+            className="mt-6 flex items-center justify-center"
           >
-            <Users className="size-4" />
-            Trusted by 850+ developers and growing
-          </motion.p>
+            {avatarTooltipItems.length > 0 ? (
+              <div className="flex items-center gap-3">
+                <AnimatedTooltip items={avatarTooltipItems} />
+                <span className="text-sm text-muted-foreground">
+                  Trusted by{" "}
+                  <span className="font-semibold text-foreground">
+                    {platformStats
+                      ? `${platformStats.developerCount}+`
+                      : "..."}
+                  </span>{" "}
+                  developers and growing
+                </span>
+              </div>
+            ) : (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="size-4" />
+                Trusted by{" "}
+                {platformStats
+                  ? `${platformStats.developerCount}+`
+                  : "850+"}{" "}
+                developers and growing
+              </p>
+            )}
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -408,22 +459,73 @@ export default function Home() {
       {/* Stats Bar */}
       <section className="border-y border-border/40 bg-card py-12">
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-8 px-6 md:grid-cols-4">
-          <StatCounter value={1200} label="Requests Posted" suffix="+" />
-          <Separator
-            orientation="vertical"
-            className="mx-auto hidden md:block"
-          />
-          <StatCounter value={850} label="Developers Registered" suffix="+" />
-          <Separator
-            orientation="vertical"
-            className="mx-auto hidden md:block"
-          />
-          <StatCounter value={3400} label="Proposals Sent" suffix="+" />
-          <Separator
-            orientation="vertical"
-            className="mx-auto hidden md:block"
-          />
-          <StatCounter value={94} label="Satisfaction Rate" suffix="%" />
+          {platformStats ? (
+            <>
+              <StatCounter
+                value={platformStats.requestCount}
+                label="Requests Posted"
+                suffix="+"
+              />
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <StatCounter
+                value={platformStats.developerCount}
+                label="Developers Registered"
+                suffix="+"
+              />
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <StatCounter
+                value={platformStats.proposalCount}
+                label="Proposals Sent"
+                suffix="+"
+              />
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <StatCounter
+                value={platformStats.satisfactionRate}
+                label="Satisfaction Rate"
+                suffix="%"
+              />
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Separator
+                orientation="vertical"
+                className="mx-auto hidden md:block"
+              />
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -452,11 +554,11 @@ export default function Home() {
                   className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5 text-center transition-colors hover:border-jade/40 hover:bg-jade/5"
                 >
                   <motion.span
-                    className="text-3xl"
+                    className="flex items-center justify-center"
                     whileHover={{ scale: 1.15, y: -4 }}
                     transition={{ type: "spring", stiffness: 400, damping: 15 }}
                   >
-                    {cat.emoji}
+                    <cat.icon className="size-7 text-jade" />
                   </motion.span>
                   <span className="text-sm font-medium">{cat.label}</span>
                 </Link>
@@ -687,41 +789,17 @@ export default function Home() {
           </p>
 
           <motion.div
-            variants={staggerContainer(0.12)}
-            initial="hidden"
-            whileInView="show"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mt-10 grid gap-6 md:grid-cols-3"
+            transition={{ delay: 0.1 }}
+            className="mt-10"
           >
-            {TESTIMONIALS.map((t) => (
-              <motion.div
-                key={t.name}
-                variants={fadeInUp}
-                className="relative rounded-2xl border border-border bg-card p-6"
-              >
-                <MessageSquareQuote className="absolute top-4 right-4 size-8 text-jade/10" />
-                <div className="mb-3 flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-4 ${i < t.rating ? "fill-amber-accent text-amber-accent" : "text-border"}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-full bg-jade/10 text-sm font-bold text-jade">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+            <InfiniteMovingCards
+              items={testimonials}
+              direction="left"
+              speed="slow"
+            />
           </motion.div>
         </div>
       </section>

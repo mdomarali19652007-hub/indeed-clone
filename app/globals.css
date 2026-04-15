@@ -55,6 +55,7 @@
   --animate-slide-up: slide-up 0.5s ease-out both;
   --animate-slide-down: slide-down 0.4s ease-out both;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-scroll: scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite;
 }
 
 /* Warm Professional — Light Mode */
@@ -270,6 +271,16 @@
 .cl-pricingTableRoot [role="dialog"],
 div[data-clerk-portal] {
   z-index: 60 !important;
+}
+
+/* Infinite scroll animation for testimonials carousel */
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
 }
 
 /* Grain texture overlay */

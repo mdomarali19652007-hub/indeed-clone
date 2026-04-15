@@ -143,4 +143,14 @@ export default defineSchema({
     .index("by_requestId", ["requestId"])
     .index("by_payerUserId", ["payerUserId"])
     .index("by_payeeUserId", ["payeeUserId"]),
+
+  testimonials: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    role: v.string(),
+    quote: v.string(),
+    rating: v.number(),
+    isApproved: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_isApproved_createdAt", ["isApproved", "createdAt"]),
 });
